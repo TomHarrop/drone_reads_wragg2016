@@ -63,7 +63,8 @@ rule dump_fastq:
     threads:
         2
     params:
-        outdir = 'output/fastq'
+        outdir = 'output/fastq',
+        tmpdir = 'output/fastq/{sample_name}.tmp'
     log:
         'output/logs/dump_fastq/{sample_name}.log'
     singularity:
@@ -72,6 +73,7 @@ rule dump_fastq:
         'fasterq-dump '
         '--outfile {wildcards.sample_name} '
         '--outdir {params.outdir} '
+        '--temp {params.tmpdir} '
         '--threads {threads} '
         '--details '
         '--split-files '
