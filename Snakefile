@@ -6,7 +6,7 @@ import pandas
 # GLOBALS #
 ###########
 
-run_info_file = 'SraRunInfo.csv'
+run_info_file = 'data/SraRunInfo.csv'
 
 sra_container = 'shub://TomHarrop/singularity-containers:sra_2.9.2'
 
@@ -63,15 +63,14 @@ rule dump_fastq:
     threads:
         2
     params:
-        outdir = 'output/fastq',
-        outfile = 'output/fastq/{sample_name}'
+        outdir = 'output/fastq'
     log:
         'output/logs/dump_fastq/{sample_name}.log'
     singularity:
         sra_container
     shell:
         'fasterq-dump '
-        '--outfile {params.outfile} '
+        '--outfile {wildcards.sample_name} '
         '--outdir {params.outdir} '
         '--threads {threads} '
         '--details '
