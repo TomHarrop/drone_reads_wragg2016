@@ -45,8 +45,6 @@ rule compress_fastq:
         'output/fastq/{sample_name}_{r}.fastq.gz'
     log:
         'output/logs/gzip/{sample_name}_{r}.log'
-    priority:
-        2
     shell:
         'gzip --best --to-stdout --verbose '
         '{input} > {output} 2> {log}'
@@ -56,15 +54,15 @@ rule dump_fastq:
     input:
         'output/SRAs/{sample_name}.sra'
     output:
-        r1 = temp('output/fastq/{sample_name}_1.fastq'),
-        r2 = temp('output/fastq/{sample_name}_2.fastq')
+        r1 = 'output/fastq/{sample_name}/{sample_name}_1.fastq',
+        r2 = 'output/fastq/{sample_name}/{sample_name}_2.fastq'
     priority:
         1
     threads:
-        2
+        48
     params:
-        outdir = 'output/fastq',
-        tmpdir = 'output/fastq/{sample_name}.tmp'
+        outdir = 'output/fastq/{sample_name}',
+        tmpdir = 'output/fastq/{sample_name}/{sample_name}.tmp'
     log:
         'output/logs/dump_fastq/{sample_name}.log'
     singularity:
@@ -79,11 +77,11 @@ rule dump_fastq:
         '--split-files '
         '--log-level 5 '
         '{input} '
-        '&> {log}'
+        '&> {log} '
 
 rule download_sra:
     output:
-        temp('output/SRAs/{sample_name}.sra')
+        'output/SRAs/{sample_name}.sra'
     params:
         url = lambda wildcards: name_to_url[wildcards.sample_name]
     threads:
