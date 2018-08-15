@@ -41,8 +41,8 @@ rule target:
 
 rule repair:
     input:
-        r1 = 'output/fastq/{sample_name}_1.fastq.gz',
-        r2 = 'output/fastq/{sample_name}_2.fastq.gz'
+        r1 = 'output/fastq/{sample_name}/{sample_name}_1.fastq',
+        r2 = 'output/fastq/{sample_name}/{sample_name}_2.fastq'
     output:
         r1 = 'output/fastq_repaired/{sample_name}_1.fastq.gz',
         r2 = 'output/fastq_repaired/{sample_name}_2.fastq.gz'
@@ -64,18 +64,6 @@ rule repair:
         'repair=t '
         '-Xmx{resources.mem_gb}g '
         '2> {log}'
-
-
-rule compress_fastq:
-    input:
-        'output/fastq/{sample_name}/{sample_name}_{r}.fastq',
-    output:
-        temp('output/fastq/{sample_name}_{r}.fastq.gz')
-    log:
-        'output/logs/gzip/{sample_name}_{r}.log'
-    shell:
-        'gzip --best --to-stdout --verbose '
-        '{input} > {output} 2> {log}'
 
 
 rule dump_fastq:
