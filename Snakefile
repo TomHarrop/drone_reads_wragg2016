@@ -9,6 +9,7 @@ import pandas
 run_info_file = 'data/SraRunInfo.csv'
 
 sra_container = 'shub://TomHarrop/singularity-containers:sra_2.9.2'
+bbduk_container = 'shub://TomHarrop/singularity-containers:bbmap_38.00'
 
 ########
 # MAIN #
@@ -34,15 +35,42 @@ all_samples = sorted(set(name_to_url.keys()))
 
 rule target:
     input:
-        expand('output/fastq/{sample_name}_{r}.fastq.gz',
+        expand('output/fastq_repaired/{sample_name}_{r}.fastq.gz',
                sample_name=all_samples,
                r=[1, 2])
 
+rule repair:
+    input:
+        r1 = 'output/fastq/{sample_name}_1.fastq.gz',
+        r2 = 'output/fastq/{sample_name}_2.fastq.gz'
+    output:
+        r1 = 'output/fastq_repaired/{sample_name}_1.fastq.gz',
+        r2 = 'output/fastq_repaired/{sample_name}_2.fastq.gz'
+    threads:
+        1
+    resources:
+        mem_gb = 50
+    log:
+        'output/logs/repair/{sample_name}.log'
+    singularity:
+        bbduk_container
+    shell:
+        'repair.sh '
+        'in={input.r1} '
+        'in2={input.r2} '
+        'out={output.r1} '
+        'out2={output.r2} '
+        'zl=9 '
+        'repair=t '
+        '-Xmx{resources.mem_gb}g '
+        '2> {log}'
+
+
 rule compress_fastq:
     input:
-        'output/fastq/{sample_name}_{r}.fastq',
+        'output/fastq/{sample_name}/{sample_name}_{r}.fastq',
     output:
-        'output/fastq/{sample_name}_{r}.fastq.gz'
+        temp('output/fastq/{sample_name}_{r}.fastq.gz')
     log:
         'output/logs/gzip/{sample_name}_{r}.log'
     shell:
@@ -54,15 +82,15 @@ rule dump_fastq:
     input:
         'output/SRAs/{sample_name}.sra'
     output:
-        r1 = 'output/fastq/{sample_name}/{sample_name}_1.fastq',
-        r2 = 'output/fastq/{sample_name}/{sample_name}_2.fastq'
+        r1 = temp('output/fastq/{sample_name}/{sample_name}_1.fastq'),
+        r2 = temp('output/fastq/{sample_name}/{sample_name}_2.fastq'),
+        tmpdir = temp(directory('output/fastq/tmp_{sample_name}'))
     priority:
         1
     threads:
         48
     params:
-        outdir = 'output/fastq/{sample_name}',
-        tmpdir = 'output/fastq/{sample_name}/{sample_name}.tmp'
+        outdir = 'output/fastq/{sample_name}'
     log:
         'output/logs/dump_fastq/{sample_name}.log'
     singularity:
@@ -71,7 +99,7 @@ rule dump_fastq:
         'fasterq-dump '
         '--outfile {wildcards.sample_name} '
         '--outdir {params.outdir} '
-        '--temp {params.tmpdir} '
+        '--temp {output.tmpdir} '
         '--threads {threads} '
         '--details '
         '--split-files '
@@ -81,7 +109,7 @@ rule dump_fastq:
 
 rule download_sra:
     output:
-        'output/SRAs/{sample_name}.sra'
+        temp('output/SRAs/{sample_name}.sra')
     params:
         url = lambda wildcards: name_to_url[wildcards.sample_name]
     threads:
